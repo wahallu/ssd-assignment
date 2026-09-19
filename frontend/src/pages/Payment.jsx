@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getTicketById, updateTicket } from "../services/ticketService";
+import { getTicketById } from "../services/ticketService";
 import { createPayment } from "../services/paymentService";
 
 export default function Payment() {
@@ -37,16 +37,13 @@ export default function Payment() {
         setError("");
         setProcessing(true);
         try {
-            // Simulate payment via POST /api/payments
+            // Only the ticket id and method are sent. The server sets the amount
+            // (from the ticket), marks the payment completed and confirms the
+            // ticket — the client can no longer pay 0 or self-confirm a booking.
             await createPayment({
                 ticketId: ticket._id,
-                userId: user._id,
-                amount: ticket.price,
                 paymentMethod: "card",
             });
-
-            // Update ticket status to "booked"
-            await updateTicket(ticket._id, { status: "booked" });
 
             setSuccess(true);
         } catch (err) {

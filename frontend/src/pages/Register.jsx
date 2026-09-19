@@ -20,8 +20,12 @@ export default function Register() {
             setError("Please fill in all fields");
             return;
         }
-        if (form.password.length < 6) {
-            setError("Password must be at least 6 characters");
+        if (
+            form.password.length < 8 ||
+            !/[A-Za-z]/.test(form.password) ||
+            !/[0-9]/.test(form.password)
+        ) {
+            setError("Password must be at least 8 characters and include letters and numbers");
             return;
         }
 
@@ -87,7 +91,7 @@ export default function Register() {
                             id="password"
                             name="password"
                             type="password"
-                            placeholder="Min. 6 characters"
+                            placeholder="Min. 8 chars, letters and numbers"
                             value={form.password}
                             onChange={handleChange}
                             autoComplete="new-password"

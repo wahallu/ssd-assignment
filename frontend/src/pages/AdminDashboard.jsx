@@ -22,6 +22,7 @@ export default function AdminDashboard() {
         location: "",
         date: "",
         availableSeats: "",
+        price: "",
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -44,7 +45,7 @@ export default function AdminDashboard() {
     }, []);
 
     const resetForm = () => {
-        setForm({ name: "", location: "", date: "", availableSeats: "" });
+        setForm({ name: "", location: "", date: "", availableSeats: "", price: "" });
         setEditing(null);
         setShowModal(false);
     };
@@ -61,6 +62,7 @@ export default function AdminDashboard() {
             location: event.location,
             date: event.date ? event.date.split("T")[0] : "",
             availableSeats: event.availableSeats,
+            price: event.price ?? "",
         });
         setShowModal(true);
     };
@@ -75,6 +77,7 @@ export default function AdminDashboard() {
             const payload = {
                 ...form,
                 availableSeats: Number(form.availableSeats),
+                price: Number(form.price),
             };
 
             if (editing) {
@@ -289,6 +292,20 @@ export default function AdminDashboard() {
                                         min="1"
                                         placeholder="100"
                                         value={form.availableSeats}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="price">Price per Seat (USD)</label>
+                                    <input
+                                        id="price"
+                                        name="price"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="29.99"
+                                        value={form.price}
                                         onChange={handleChange}
                                         required
                                     />

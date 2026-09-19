@@ -33,7 +33,9 @@ export default function Booking() {
         fetchEvent();
     }, [eventId]);
 
-    const pricePerSeat = 29.99; // Demo price
+    // Display price comes from the event; the authoritative price is applied
+    // server-side when the ticket is created.
+    const pricePerSeat = event?.price ?? 0;
     const totalPrice = (seatCount * pricePerSeat).toFixed(2);
 
     const handleBooking = async (e) => {
@@ -54,11 +56,11 @@ export default function Booking() {
 
         setSubmitting(true);
         try {
+            // Only the event and seat count are sent. The server derives the
+            // owner (from the token), the price (from the event) and the status.
             const res = await createTicket({
                 eventId,
-                userId: user._id,
                 seatCount: Number(seatCount),
-                price: Number(totalPrice),
             });
             // Navigate to payment with the created ticket
             navigate(`/payment/${res.data._id}`);
