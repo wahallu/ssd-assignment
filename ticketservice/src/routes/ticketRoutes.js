@@ -7,25 +7,20 @@ const {
     getTicketsByUserId,
     updateTicket,
     deleteTicket,
+    confirmTicket,
 } = require("../controllers/ticketController");
+const { requireAuth } = require("../middlewares/security");
 
-// POST   /api/tickets            — Create a new ticket
-router.post("/", createTicket);
+// All ticket routes require an authenticated user; ownership is checked per record.
+router.post("/", requireAuth, createTicket);
+router.get("/", requireAuth, getAllTickets);
 
-// GET    /api/tickets            — Get all tickets (supports ?userId filter)
-router.get("/", getAllTickets);
+// NOTE: user route must be defined BEFORE /:id
+router.get("/user/:userId", requireAuth, getTicketsByUserId);
 
-// GET    /api/tickets/user/:userId — Get tickets by user ID
-// NOTE: This route must be defined BEFORE /:id to avoid conflicts
-router.get("/user/:userId", getTicketsByUserId);
-
-// GET    /api/tickets/:id        — Get a single ticket
-router.get("/:id", getTicketById);
-
-// PUT    /api/tickets/:id        — Update a ticket
-router.put("/:id", updateTicket);
-
-// DELETE /api/tickets/:id        — Delete a ticket
-router.delete("/:id", deleteTicket);
+router.get("/:id", requireAuth, getTicketById);
+router.put("/:id", requireAuth, updateTicket);
+router.patch("/:id/confirm", requireAuth, confirmTicket);
+router.delete("/:id", requireAuth, deleteTicket);
 
 module.exports = router;
