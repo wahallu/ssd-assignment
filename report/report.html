@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>EventHub Security Report</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #1a1a1a; font-size: 11px; line-height: 1.5; }
+  h1 { font-size: 26px; margin: 0 0 4px; color: #10243e; }
+  h2 { font-size: 17px; margin: 26px 0 8px; color: #10243e; border-bottom: 2px solid #2d6cdf; padding-bottom: 3px; }
+  h3 { font-size: 13px; margin: 16px 0 4px; color: #12305a; }
+  h4 { font-size: 11.5px; margin: 10px 0 3px; color: #333; }
+  p { margin: 5px 0; }
+  code, pre { font-family: "SFMono-Regular", Consolas, monospace; font-size: 9.7px; }
+  pre { background: #f4f6fa; border: 1px solid #dde3ec; border-radius: 4px; padding: 8px 10px; overflow-x: auto; white-space: pre-wrap; }
+  code { background: #eef1f6; padding: 1px 4px; border-radius: 3px; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+  th, td { border: 1px solid #cdd6e4; padding: 5px 7px; text-align: left; vertical-align: top; }
+  th { background: #10243e; color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: #f6f8fc; }
+  .cover { text-align: center; padding-top: 60px; page-break-after: always; }
+  .cover h1 { font-size: 34px; }
+  .cover .sub { font-size: 15px; color: #444; margin-top: 6px; }
+  .cover table { width: 70%; margin: 40px auto; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; color: #fff; }
+  .crit { background: #b3261e; } .high { background: #d9730d; } .med { background: #b58900; }
+  .vuln { color: #b3261e; font-weight: 700; } .safe { color: #1a7f37; font-weight: 700; }
+  .box { border-left: 4px solid #2d6cdf; background: #f4f8ff; padding: 6px 10px; margin: 8px 0; }
+  .small { color: #555; font-size: 10px; }
+  .page-break { page-break-before: always; }
+  ul { margin: 4px 0 4px 0; padding-left: 18px; } li { margin: 2px 0; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div style="font-size:13px; letter-spacing:2px; color:#2d6cdf; font-weight:700;">SE4030 – SECURE SOFTWARE DEVELOPMENT</div>
+  <h1>EventHub</h1>
+  <div class="sub">Security Assessment &amp; Remediation Report</div>
+  <div class="sub">A microservices event‑ticketing platform</div>
+  <table>
+    <tr><th>Index Number</th><th>Name</th></tr>
+    <tr><td>IT22207272</td><td>Fonseka G N V S</td></tr>
+    <tr><td>IT22228062</td><td>Jayasinghe I A S A</td></tr>
+    <tr><td>IT22049872</td><td>Navod W D C</td></tr>
+    <tr><td>IT22246332</td><td>Hettiarachchi H A S L</td></tr>
+  </table>
+  <p class="small">Original project: github.com/wahallu/CTSE---Assignment<br/>
+  Modified project: see README for the new repository link</p>
+</div>
+
+<h2>1. Introduction</h2>
+<p><strong>EventHub</strong> is an event‑ticketing web application implemented as five
+Node.js/Express microservices — <em>User</em>, <em>Event</em>, <em>Ticket</em>,
+<em>Payment</em> and an <em>API Gateway</em> — with a React (Vite) single‑page front
+end and MongoDB storage. Users browse events, book seats, pay, and view their
+tickets; administrators manage events. The application is deployed to Azure
+Container Apps through a GitHub Actions CI/CD pipeline.</p>
+<p>The original source (last commit before the semester start) was reviewed against
+the <strong>OWASP Top 10 (2021)</strong>. We identified <strong>eleven distinct
+vulnerabilities</strong> across authentication, access control, business logic,
+injection and configuration, and remediated all of them. Each fix is a separate
+commit with a detailed message, and a reproducible exploit harness demonstrates
+the before/after state.</p>
+
+<h2>2. Methodology and tools</h2>
+<ul>
+  <li><strong>Manual white‑box review</strong> of every controller, route and middleware.</li>
+  <li><strong>Black‑box dynamic testing</strong> with a custom script (<code>security-tests/exploits.sh</code>)
+      using <code>curl</code> and <code>jq</code> to send real attack requests through the gateway.</li>
+  <li><strong>JWT forgery test</strong> using Node's <code>crypto</code> to sign a token with the
+      leaked default secret.</li>
+  <li><strong>Dependency / secret review</strong> of <code>package.json</code>, <code>docker-compose.yml</code>
+      and the git history.</li>
+</ul>
+<p>The harness runs 17 checks (V1–V10, several with sub‑cases). The result was
+<span class="vuln">17 vulnerable / 0 safe</span> on the original code and
+<span class="safe">0 vulnerable / 17 safe</span> after remediation.</p>
+
+<h2>3. Summary of findings</h2>
+<table>
+  <tr><th>#</th><th>Vulnerability</th><th>OWASP 2021</th><th>Severity</th><th>Status</th></tr>
+  <tr><td>V1</td><td>Mass‑assignment privilege escalation (register as admin)</td><td>A04 / A01</td><td><span class="pill crit">Critical</span></td><td class="safe">Fixed</td></tr>
+  <tr><td>V2</td><td>Hard‑coded default JWT secret &amp; committed DB credentials</td><td>A02 / A05</td><td><span class="pill crit">Critical</span></td><td class="safe">Fixed</td></tr>
+  <tr><td>V3</td><td>Broken access control / IDOR on user accounts</td><td>A01</td><td><span class="pill crit">Critical</span></td><td class="safe">Fixed</td></tr>
+  <tr><td>V4</td><td>Missing authentication on event management</td><td>A01</td><td><span class="pill high">High</span></td><td class="safe">Fixed</td></tr>
+  <tr><td>V5</td><td>Client‑controlled ticket price &amp; status</td><td>A04</td><td><span class="pill high">High</span></td><td class="safe">Fixed</td></tr>
+  <tr><td>V6</td><td>Client‑controlled payment amount &amp; status</td><td>A04</td><td><span class="pill crit">Critical</span></td><td class="safe">Fixed</td></tr>
+  <tr><td>V7</td><td>IDOR on tickets &amp; payments</td><td>A01</td><td><span class="pill high">High</span></td><td class="safe">Fixed</td></tr>
+  <tr><td>V8</td><td>NoSQL operator injection</td><td>A03</td><td><span class="pill high">High</span></td><td class="safe">Fixed</td></tr>
+  <tr><td>V9</td><td>Security misconfiguration (CORS, headers, error leakage)</td><td>A05</td><td><span class="pill med">Medium</span></td><td class="safe">Fixed</td></tr>
+  <tr><td>V10</td><td>Weak password policy &amp; login brute force</td><td>A07</td><td><span class="pill high">High</span></td><td class="safe">Fixed</td></tr>
+  <tr><td>V11</td><td>Race condition / seat overselling (TOCTOU)</td><td>A04</td><td><span class="pill med">Medium</span></td><td class="safe">Fixed</td></tr>
+</table>
+
+<div class="page-break"></div>
+<h2>4. Detailed findings and fixes</h2>
+
+<h3>V1 — Mass‑assignment privilege escalation <span class="pill crit">Critical</span></h3>
+<p><strong>Where:</strong> <code>userservice/src/controllers/userController.js</code> (registerUser).</p>
+<p><strong>Problem:</strong> the public registration endpoint copied the <code>role</code>
+field straight from the request body into the new user, so any anonymous person
+could create an administrator account.</p>
+<pre><code>// BEFORE
+const { name, email, password, role } = req.body;
+const user = await User.create({ name, email, password: hashedPassword, role });</code></pre>
+<p><strong>Evidence:</strong> <code>POST /api/users/register {"role":"admin"}</code> → account created with <code>role=admin</code>.</p>
+<p><strong>Fix:</strong> the role is never taken from user input; self‑registration is always a customer, and only an existing admin can change a role (through a whitelisted update). The first admin is created through a controlled bootstrap.</p>
+<pre><code>// AFTER — role is forced, not taken from the body
+const user = await User.create({ name, email, password: hashedPassword, role: "customer" });</code></pre>
+
+<h3>V2 — Hard‑coded default JWT secret &amp; committed credentials <span class="pill crit">Critical</span></h3>
+<p><strong>Where:</strong> gateway &amp; user auth (<code>process.env.JWT_SECRET || "eventhub"</code>), <code>docker-compose.yml</code>.</p>
+<p><strong>Problem:</strong> the JWT signing secret defaulted to the literal string
+<code>"eventhub"</code>, and a live MongoDB Atlas connection string
+(<code>nisal:1234@…</code>) was committed. With the known secret an attacker can forge
+a valid token for any user and role.</p>
+<p><strong>Evidence:</strong> a token signed with HMAC‑SHA256 and key <code>eventhub</code> carrying
+<code>role:"admin"</code> was accepted by <code>GET /api/users</code> (HTTP 200).</p>
+<p><strong>Fix:</strong> a fail‑fast <code>config/env.js</code> in every service refuses to start
+without a <code>JWT_SECRET</code> (min 32 chars) and <code>INTERNAL_API_KEY</code>; all secrets
+move to an untracked <code>.env</code> (documented in <code>.env.example</code>).
+<span class="box">The leaked database credentials must be <strong>rotated in MongoDB Atlas</strong>
+— deleting them from the file does not remove them from earlier commits.</span></p>
+
+<h3>V3 — Broken access control / IDOR on user accounts <span class="pill crit">Critical</span></h3>
+<p><strong>Where:</strong> <code>userservice/src/routes/userRoutes.js</code> &amp; controller.</p>
+<p><strong>Problem:</strong> every authenticated user could <code>GET /api/users</code> (list all
+accounts including hashes metadata), and <code>PUT/DELETE /api/users/:id</code> on <em>any</em>
+id — allowing a customer to reset another user's password, delete accounts, or set
+their own role to admin.</p>
+<p><strong>Evidence:</strong> as a normal customer: list all users (200, 4 accounts);
+<code>PUT /api/users/&lt;self&gt; {"role":"admin"}</code> → became admin;
+<code>PUT /api/users/&lt;bob&gt; {"password":"…"}</code> → 200 (account takeover).</p>
+<p><strong>Fix:</strong> <code>GET /api/users</code> is admin‑only; <code>:id</code> routes require
+<em>owner‑or‑admin</em> (<code>requireSelfOrAdmin</code>); role can only be changed by an admin;
+updates are field‑whitelisted so <code>role</code>/other fields cannot be mass‑assigned.</p>
+
+<h3>V4 — Missing authentication on event management <span class="pill high">High</span></h3>
+<p><strong>Where:</strong> gateway routing + <code>eventservice</code> routes.</p>
+<p><strong>Problem:</strong> the gateway only authenticated <code>/api/users</code>, <code>/api/tickets</code>
+and <code>/api/payments</code>. All of <code>/api/events</code> (including create/update/delete) was
+unauthenticated, so anyone could create fake events or set a real event's seats to
+0 to sabotage sales.</p>
+<p><strong>Evidence:</strong> anonymous <code>POST /api/events</code> → 201; customer
+<code>PUT /api/events/:id {"availableSeats":0}</code> → 200.</p>
+<p><strong>Fix:</strong> the gateway now protects every non‑GET <code>/api/events</code> request; the
+Event Service requires an authenticated <strong>admin</strong> for create/update/delete,
+while reads remain public.</p>
+
+<h3>V5 — Client‑controlled ticket price &amp; status <span class="pill high">High</span></h3>
+<p><strong>Where:</strong> <code>ticketservice/src/controllers/ticketController.js</code>.</p>
+<p><strong>Problem:</strong> <code>createTicket</code> trusted <code>price</code> and <code>status</code> from the
+request body, so a booking could be created for <code>price:0</code> and immediately marked
+<code>status:"booked"</code>.</p>
+<p><strong>Evidence:</strong> booking with <code>{"price":0,"status":"booked"}</code> stored a ticket with price 0, status booked.</p>
+<p><strong>Fix:</strong> price is computed server‑side from the authoritative event price
+(<code>event.price × seatCount</code>) and status is forced to <code>pending</code> until payment
+completes. The owner id comes from the verified token, not the body.</p>
+
+<h3>V6 — Client‑controlled payment amount &amp; status <span class="pill crit">Critical</span></h3>
+<p><strong>Where:</strong> <code>paymentservice/src/controllers/paymentController.js</code>.</p>
+<p><strong>Problem:</strong> <code>createPayment</code> trusted <code>amount</code> and <code>status</code>, so a user
+could record a <code>completed</code> payment of <code>0.00</code> and receive a confirmed ticket
+without paying.</p>
+<p><strong>Evidence:</strong> <code>POST /api/payments {"amount":0,"status":"completed"}</code> created a completed 0.00 payment.</p>
+<p><strong>Fix:</strong> the amount is read from the verified ticket price and the status is
+set by the server; a user can only pay for their own ticket; a duplicate completed
+payment is rejected; the ticket is confirmed by the server after payment.</p>
+
+<h3>V7 — IDOR on tickets &amp; payments <span class="pill high">High</span></h3>
+<p><strong>Where:</strong> ticket &amp; payment controllers/routes.</p>
+<p><strong>Problem:</strong> any user could read or cancel another user's tickets, list every
+ticket, and list every payment in the system.</p>
+<p><strong>Fix:</strong> list endpoints are scoped to the caller's own id (admins see all);
+per‑record endpoints enforce owner‑or‑admin. Identity comes from the token.</p>
+
+<h3>V8 — NoSQL operator injection <span class="pill high">High</span></h3>
+<p><strong>Where:</strong> <code>getAllTickets</code> query filter; all request inputs.</p>
+<p><strong>Problem:</strong> <code>?userId[$ne]=…</code> was passed straight into a Mongo query,
+returning every ticket regardless of owner (operator injection).</p>
+<p><strong>Fix:</strong> list filters use the trusted token identity instead of a client
+query parameter, and a shared <code>sanitize()</code> middleware recursively strips keys
+beginning with <code>$</code> or containing <code>.</code> from request bodies and params.</p>
+
+<h3>V9 — Security misconfiguration <span class="pill med">Medium</span></h3>
+<p><strong>Where:</strong> all services.</p>
+<p><strong>Problem:</strong> <code>cors()</code> allowed <em>any</em> origin; no security headers were
+set; <code>X-Powered-By</code> advertised Express; error handlers echoed internal messages.</p>
+<p><strong>Fix:</strong> the gateway uses a CORS allow‑list (<code>CORS_ORIGINS</code>); every
+service sets <code>X-Content-Type-Options</code>, <code>X-Frame-Options</code>, <code>Referrer-Policy</code>
+and HSTS, disables <code>X-Powered-By</code>, and returns a generic message for 500s.</p>
+
+<h3>V10 — Weak passwords &amp; login brute force <span class="pill high">High</span></h3>
+<p><strong>Where:</strong> user registration; gateway rate limiting.</p>
+<p><strong>Problem:</strong> a password of <code>"1"</code> was accepted, and login allowed 100
+attempts / 15 min — enough for credential stuffing.</p>
+<p><strong>Fix:</strong> a policy of ≥ 8 characters with letters and numbers is enforced
+(bcrypt cost 12); a strict limiter allows only 5 auth attempts / 15 min, and login
+returns a uniform response with a constant‑time comparison to reduce enumeration.</p>
+
+<h3>V11 — Race condition / seat overselling <span class="pill med">Medium</span></h3>
+<p><strong>Where:</strong> ticket → event seat update.</p>
+<p><strong>Problem:</strong> booking read <code>availableSeats</code> then wrote the decremented
+value in a separate request (time‑of‑check/time‑of‑use), so simultaneous bookings
+could oversell.</p>
+<p><strong>Fix:</strong> an atomic conditional update on the Event Service
+(<code>findOneAndUpdate({ availableSeats: {$gte: n} }, { $inc: { availableSeats: -n } })</code>)
+guarantees seats are only reserved when actually available; a failed ticket write
+rolls the reservation back.</p>
+
+<div class="page-break"></div>
+<h2>5. Architectural hardening: the gateway trust boundary</h2>
+<p>A cross‑cutting weakness was that the backend services had no notion of identity
+and could be called directly. We introduced a <strong>single trust boundary at the
+API Gateway</strong>:</p>
+<ul>
+  <li>The gateway is the only component that verifies JWTs.</li>
+  <li>It <strong>strips</strong> any client‑supplied <code>x-internal-key</code> / <code>x-user-*</code> headers,
+      then re‑adds the shared <code>INTERNAL_API_KEY</code> and the verified identity.</li>
+  <li>Each backend service rejects requests without a valid internal key (403) and
+      reads identity/role from the gateway‑set headers.</li>
+</ul>
+<p>This closes header‑spoofing and direct‑access bypasses and gives every service a
+reliable identity for authorization.</p>
+
+<h2>6. New feature — Sign in with Google (OpenID Connect)</h2>
+<p>We added Google login using the <strong>OpenID Connect Authorization Code flow with
+PKCE</strong> (<code>userservice/src/controllers/oauthController.js</code>):</p>
+<table>
+  <tr><th>Control</th><th>Purpose</th></tr>
+  <tr><td>Authorization Code + PKCE (S256)</td><td>Client secret stays server‑side; the code is bound to this client.</td></tr>
+  <tr><td><code>state</code> parameter</td><td>Prevents login CSRF on the callback.</td></tr>
+  <tr><td><code>nonce</code> in ID token</td><td>Prevents token replay.</td></tr>
+  <tr><td>ID‑token validation (aud, exp, signature) + <code>email_verified</code></td><td>Ensures the token is genuine and the email is owned.</td></tr>
+  <tr><td>Signed, httpOnly, SameSite cookie</td><td>Holds the short‑lived flow secrets without a session store.</td></tr>
+  <tr><td>Token via URL fragment</td><td>App JWT is returned in <code>#token=…</code> so it is not sent to servers/logs.</td></tr>
+</table>
+<p>New Google users are created as customers; an existing local account with the same
+verified email is linked. The endpoints return <code>503</code> when Google credentials are
+not configured, so the app still runs without them.</p>
+
+<h2>7. Vulnerabilities not fixed</h2>
+<p>All eleven identified vulnerabilities were fixed. A few <em>defence‑in‑depth</em>
+improvements are documented as future work rather than left as exploitable holes:</p>
+<ul>
+  <li><strong>Real payment gateway:</strong> payments are still simulated (marked completed
+      server‑side). Integrating a real PSP (e.g. Stripe) with webhook confirmation is
+      out of scope for this assignment.</li>
+  <li><strong>Refresh tokens / token revocation:</strong> JWTs are stateless with a fixed
+      expiry; a token blacklist or short‑lived access + refresh tokens would allow
+      immediate revocation.</li>
+  <li><strong>Token storage in the browser:</strong> the SPA keeps the JWT in
+      <code>localStorage</code>; moving to httpOnly cookies would remove XSS token‑theft risk
+      but requires CSRF protection and was kept compatible with the existing client.</li>
+  <li><strong>Automated dependency scanning &amp; SAST in CI</strong> (see best practices).</li>
+</ul>
+
+<h2>8. Best practices that would have prevented these issues</h2>
+<ul>
+  <li><strong>Secrets management:</strong> never commit secrets; use <code>.env</code>/secret stores
+      (Azure Key Vault) and pre‑commit secret scanning; fail fast on missing config.</li>
+  <li><strong>Secure defaults &amp; least privilege:</strong> deny by default, whitelist inputs,
+      and never derive privileges (role) from client input.</li>
+  <li><strong>Server‑authoritative business logic:</strong> price, amount, status and identity
+      must be decided server‑side, never trusted from the client.</li>
+  <li><strong>Centralised authN/authZ:</strong> a single verified trust boundary with
+      per‑route authorization checks.</li>
+  <li><strong>Input validation &amp; output encoding:</strong> validate types, reject Mongo
+      operators, and never echo internal errors.</li>
+  <li><strong>Security in CI/CD:</strong> add <code>npm audit</code>/Dependabot, SAST (the project
+      already runs SonarCloud), and secret scanning to the existing GitHub Actions
+      pipeline; enforce code review.</li>
+  <li><strong>Threat modelling &amp; security testing:</strong> a repeatable exploit suite (as
+      added here) run in CI catches regressions.</li>
+</ul>
+
+<h2>9. Conclusion</h2>
+<p>The original EventHub contained eleven distinct, largely critical vulnerabilities
+spanning authentication, access control, business logic, injection and
+configuration. All were remediated with focused, individually‑committed changes and
+verified by an automated exploit harness that moved the application from
+<span class="vuln">17 vulnerable / 0 safe</span> to
+<span class="safe">0 vulnerable / 17 safe</span>. A Google OpenID Connect login was
+added following current OAuth 2.0 security best practice. The remaining items are
+defence‑in‑depth enhancements documented for future work.</p>
+
+</body>
+</html>
