@@ -1,0 +1,36 @@
+== EventHub exploit checks against http://127.0.0.1:17100 (run 1452612041) ==
+  [SAFE]       V1    Register with role=admin
+              role ignored (got 'customer')
+  [SAFE]       V2    Forged JWT signed with default secret 'eventhub'
+              forged token rejected (HTTP 401)
+  [SAFE]       V3a   Customer lists every user account
+              HTTP 403
+  [SAFE]       V3b   Customer promotes self to admin via PUT /users/:id
+              HTTP 403, role=unchanged
+  [SAFE]       V3c   Alice resets Bob's password (account takeover)
+              HTTP 403
+  [SAFE]       V4a   Anonymous user creates an event
+              HTTP 401
+  [SAFE]       V4b   Customer edits an event (sold-out sabotage)
+              HTTP 403
+  [SAFE]       V5a   Book a ticket for price=0 with status=booked
+              HTTP 201, price=25 status=pending
+  [SAFE]       V5b   Pay 0.00 for a ticket (client-supplied amount)
+              server charged real amount=25 (client 0 ignored)
+  [SAFE]       V6a   Alice reads Bob's tickets
+              HTTP 403
+  [SAFE]       V6b   Alice cancels Bob's ticket
+              HTTP 403
+  [SAFE]       V6c   Customer sees other users' payments
+              HTTP 200, other-user payments visible=0
+  [SAFE]       V7    Query-operator injection ?userId[$ne]=… dumps all tickets
+              HTTP 200, count=1
+  [SAFE]       V8a   CORS allows arbitrary origins
+              evil.example not allowed
+  [SAFE]       V8b   Missing security headers / X-Powered-By leaked
+              helmet headers present
+  [SAFE]       V9    Account created with password '1'
+              HTTP 400
+  [SAFE]       V10   12 wrong passwords in a row
+              locked out with HTTP 429
+== 0 vulnerable / 17 safe ==
