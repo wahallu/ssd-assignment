@@ -13,7 +13,7 @@
 ### Project Links
 
 - **Original project (before fixes):** https://github.com/wahallu/CTSE---Assignment
-- **Modified project (after fixes):** _<add the new GitHub repository URL here after pushing>_
+- **Modified project (after fixes):** https://github.com/wahallu/ssd-assignment
 - **YouTube demonstration (max 20 min):** _<add the unlisted YouTube link here>_
 
 > The modified repository must preserve the detailed commit history in this
