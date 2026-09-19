@@ -27,12 +27,12 @@ const errorHandler = (err, req, res, next) => {
         });
     }
 
-    // Default server error
+    // Default server error — never leak internal error details to clients.
     const statusCode = err.statusCode || 500;
+    const clientError = statusCode >= 400 && statusCode < 500;
     res.status(statusCode).json({
         success: false,
-        message: err.message || "Internal Server Error",
-        ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+        message: clientError && err.message ? err.message : "Internal Server Error",
     });
 };
 
