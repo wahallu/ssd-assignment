@@ -8,6 +8,7 @@ import Booking from "./pages/Booking";
 import Payment from "./pages/Payment";
 import MyTickets from "./pages/MyTickets";
 import AdminDashboard from "./pages/AdminDashboard";
+import OAuthCallback from "./pages/OAuthCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path="/" element={<Navigate to="/events" replace />} />
           <Route path="/users/login" element={<Login />} />
           <Route path="/users/register" element={<Register />} />
+          <Route path="/oauth/callback" element={<OAuthCallback />} />
           <Route path="/events" element={<Events />} />
           <Route path="/events/:id" element={<EventDetails />} />
           <Route path="/booking/:eventId" element={<Booking />} />

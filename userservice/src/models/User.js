@@ -20,7 +20,23 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      // Not required for accounts created through an OAuth/OIDC provider.
+      required: [
+        function () {
+          return this.provider === "local";
+        },
+        "Password is required",
+      ],
+    },
+    provider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+    googleId: {
+      type: String,
+      index: true,
+      sparse: true,
     },
     role: {
       type: String,

@@ -83,6 +83,15 @@ export default function Login() {
                     </button>
                 </form>
 
+                <div className="auth-divider"><span>or</span></div>
+
+                <a
+                    href={`${import.meta.env.VITE_API_URL || "http://localhost:7000"}/api/users/auth/google`}
+                    className="btn btn-outline btn-full"
+                >
+                    Continue with Google
+                </a>
+
                 <p className="auth-footer">
                     Don't have an account? <Link to="/users/register">Sign up</Link>
                 </p>
