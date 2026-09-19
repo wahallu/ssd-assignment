@@ -10,16 +10,30 @@ const {
     deleteUser,
 } = require("../controllers/userController");
 
-const { protect } = require("../middlewares/authMiddleware");
+const { requireAuth, requireAdmin } = require("../middlewares/security");
 
-// Public routes
+/**
+ * Allow the action only when the caller is the resource owner or an admin.
+ * Closes the IDOR where any user could read/modify/delete any other account.
+ */
+const requireSelfOrAdmin = (req, res, next) => {
+    if (req.auth.role === "admin" || req.auth.userId === req.params.id) {
+        return next();
+    }
+    return res.status(403).json({
+        success: false,
+        message: "You may only access your own account",
+    });
+};
+
+// Public routes (also rate-limited at the gateway)
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
 // Protected routes
-router.get("/", protect, getAllUsers);
-router.get("/:id", protect, getUserById);
-router.put("/:id", protect, updateUser);
-router.delete("/:id", protect, deleteUser);
+router.get("/", requireAuth, requireAdmin, getAllUsers);
+router.get("/:id", requireAuth, requireSelfOrAdmin, getUserById);
+router.put("/:id", requireAuth, requireSelfOrAdmin, updateUser);
+router.delete("/:id", requireAuth, requireSelfOrAdmin, deleteUser);
 
 module.exports = router;
