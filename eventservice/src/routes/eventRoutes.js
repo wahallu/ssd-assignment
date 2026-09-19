@@ -6,21 +6,22 @@ const {
     getEventById,
     updateEvent,
     deleteEvent,
+    reserveSeats,
+    releaseSeats,
 } = require("../controllers/eventController");
+const { requireAuth, requireAdmin } = require("../middlewares/security");
 
-// POST   /api/events       — Create a new event
-router.post("/", createEvent);
-
-// GET    /api/events       — Get all events
+// Public reads
 router.get("/", getAllEvents);
-
-// GET    /api/events/:id   — Get a single event
 router.get("/:id", getEventById);
 
-// PUT    /api/events/:id   — Update an event
-router.put("/:id", updateEvent);
+// Seat adjustments — any authenticated user (called by Ticket Service on their behalf)
+router.patch("/:id/reserve", requireAuth, reserveSeats);
+router.patch("/:id/release", requireAuth, releaseSeats);
 
-// DELETE /api/events/:id   — Delete an event
-router.delete("/:id", deleteEvent);
+// Admin-only management
+router.post("/", requireAuth, requireAdmin, createEvent);
+router.put("/:id", requireAuth, requireAdmin, updateEvent);
+router.delete("/:id", requireAuth, requireAdmin, deleteEvent);
 
 module.exports = router;

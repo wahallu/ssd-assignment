@@ -21,6 +21,13 @@ const eventSchema = new mongoose.Schema(
             required: [true, "Available seats count is required"],
             min: [0, "Available seats cannot be negative"],
         },
+        // Authoritative price per seat. Tickets are priced from this value,
+        // never from a value supplied by the client.
+        price: {
+            type: Number,
+            required: [true, "Ticket price is required"],
+            min: [0, "Price cannot be negative"],
+        },
     },
     {
         timestamps: true,
