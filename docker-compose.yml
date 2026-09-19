@@ -1,5 +1,11 @@
 version: '3.8'
 
+# ------------------------------------------------------------------
+# All secrets (database URIs, JWT secret, internal service key, OAuth
+# credentials) are injected from the environment / a local .env file
+# that is NEVER committed. See .env.example for the required keys.
+# ------------------------------------------------------------------
+
 services:
 
   event-service:
@@ -11,7 +17,9 @@ services:
       - "4000:4000"
     environment:
       - PORT=4000
-      - MONGODB_URI=mongodb+srv://nisal:1234@cluster0.p860x.mongodb.net/eventdb
+      - NODE_ENV=production
+      - MONGODB_URI=${EVENT_MONGODB_URI}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
     networks:
       - event-network
 
@@ -24,7 +32,9 @@ services:
       - "5000:5000"
     environment:
       - PORT=5000
-      - MONGODB_URI=mongodb+srv://nisal:1234@cluster0.p860x.mongodb.net/ticketdb
+      - NODE_ENV=production
+      - MONGODB_URI=${TICKET_MONGODB_URI}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
       - EVENT_SERVICE_URL=http://event-service:4000
     networks:
       - event-network
@@ -38,8 +48,16 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
-      - MONGODB_URI=mongodb+srv://nisal:1234@cluster0.p860x.mongodb.net/userdb
-      - JWT_SECRET=${JWT_SECRET:-eventhub}
+      - NODE_ENV=production
+      - MONGODB_URI=${USER_MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+      - ADMIN_BOOTSTRAP_EMAIL=${ADMIN_BOOTSTRAP_EMAIL}
+      - ADMIN_BOOTSTRAP_PASSWORD=${ADMIN_BOOTSTRAP_PASSWORD}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - OAUTH_SUCCESS_REDIRECT=${OAUTH_SUCCESS_REDIRECT}
     networks:
       - event-network
 
@@ -52,7 +70,9 @@ services:
       - "6000:6000"
     environment:
       - PORT=6000
-      - MONGODB_URI=mongodb+srv://nisal:1234@cluster0.p860x.mongodb.net/paymentdb
+      - NODE_ENV=production
+      - MONGODB_URI=${PAYMENT_MONGODB_URI}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
       - TICKET_SERVICE_URL=http://ticket-service:5000
     networks:
       - event-network
@@ -66,7 +86,10 @@ services:
       - "7000:7000"
     environment:
       - PORT=7000
-      - JWT_SECRET=${JWT_SECRET:-eventhub}
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS}
       - USER_SERVICE_URL=http://user-service:3000
       - EVENT_SERVICE_URL=http://event-service:4000
       - TICKET_SERVICE_URL=http://ticket-service:5000
