@@ -8,24 +8,18 @@ const {
     updatePayment,
     deletePayment,
 } = require("../controllers/paymentController");
+const { requireAuth, requireAdmin } = require("../middlewares/security");
 
-// POST   /api/payments              — Process a new payment
-router.post("/", createPayment);
+router.post("/", requireAuth, createPayment);
+router.get("/", requireAuth, getAllPayments);
 
-// GET    /api/payments              — Get all payments
-router.get("/", getAllPayments);
+// NOTE: user route must be defined BEFORE /:id
+router.get("/user/:userId", requireAuth, getPaymentsByUserId);
 
-// GET    /api/payments/user/:userId — Get payments by user ID
-// NOTE: This route must be defined BEFORE /:id to avoid conflicts
-router.get("/user/:userId", getPaymentsByUserId);
+router.get("/:id", requireAuth, getPaymentById);
 
-// GET    /api/payments/:id          — Get a single payment
-router.get("/:id", getPaymentById);
-
-// PUT    /api/payments/:id          — Update payment status
-router.put("/:id", updatePayment);
-
-// DELETE /api/payments/:id          — Delete a payment
-router.delete("/:id", deletePayment);
+// Status changes / deletions are administrative operations.
+router.put("/:id", requireAuth, requireAdmin, updatePayment);
+router.delete("/:id", requireAuth, requireAdmin, deletePayment);
 
 module.exports = router;
