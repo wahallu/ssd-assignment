@@ -45,7 +45,10 @@ app.use(
             // Allow same-origin / server-to-server requests (no Origin header).
             if (!origin) return cb(null, true);
             if (CORS_ORIGINS.includes(origin)) return cb(null, true);
-            return cb(new Error("Origin not allowed by CORS"));
+            // Omit CORS headers for untrusted origins without turning an
+            // otherwise valid API request into a server error. Browsers will
+            // still block JavaScript from reading the response.
+            return cb(null, false);
         },
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
