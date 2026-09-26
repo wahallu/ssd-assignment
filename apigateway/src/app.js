@@ -6,7 +6,7 @@ const morgan = require("morgan");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const { authenticate } = require("./middleware/auth");
-const { globalLimiter, authLimiter } = require("./middleware/rateLimiter");
+const { globalLimiter, authLimiter, writeLimiter } = require("./middleware/rateLimiter");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -107,6 +107,14 @@ const injectTrust = (req, _res, next) => {
 // ─── Auth wiring ────────────────────────────────────────────────
 app.use("/api/users/login", authLimiter);
 app.use("/api/users/register", authLimiter);
+
+// Extra budget on top of globalLimiter for the sensitive write paths that
+// reserve seats and move money — blunts booking/payment spam and scalping
+// bots beyond what the generic per-IP limit covers.
+const limitWrites = (req, res, next) =>
+    req.method === "POST" ? writeLimiter(req, res, next) : next();
+app.use("/api/tickets", limitWrites);
+app.use("/api/payments", limitWrites);
 
 app.use("/api/users", conditionalAuth);
 app.use("/api/events", conditionalAuth);
