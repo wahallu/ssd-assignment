@@ -21,6 +21,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const env = require("../config/env");
 const { generateToken } = require("./userController");
+const { isGoogleIssuer } = require("../utils/googleIssuer");
 
 const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
@@ -148,6 +149,9 @@ const googleCallback = async (req, res, next) => {
 
         if (claims.aud !== env.GOOGLE_CLIENT_ID) {
             return failFlow(res, 401, "ID token audience mismatch");
+        }
+        if (!isGoogleIssuer(claims.iss)) {
+            return failFlow(res, 401, "ID token issuer mismatch");
         }
         if (claims.nonce !== flow.nonce) {
             return failFlow(res, 401, "ID token nonce mismatch");
