@@ -21,6 +21,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const env = require("../config/env");
 const { generateToken } = require("./userController");
+const { isGoogleIssuer } = require("../utils/googleIssuer");
 
 const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
@@ -42,6 +43,16 @@ const parseCookies = (header = "") =>
         if (idx > -1) acc[part.slice(0, idx).trim()] = decodeURIComponent(part.slice(idx + 1).trim());
         return acc;
     }, {});
+
+// Send the user back to the SPA with a friendly error instead of raw JSON,
+// using the same URL-fragment technique as the success path so the reason
+// never reaches server logs.
+const failFlow = (res, status, message) => {
+    if (env.OAUTH_SUCCESS_REDIRECT) {
+        return res.redirect(`${env.OAUTH_SUCCESS_REDIRECT}#oauth_error=${encodeURIComponent(message)}`);
+    }
+    return res.status(status).json({ success: false, message });
+};
 
 // GET /api/users/auth/google — start the login flow
 const googleStart = (req, res) => {
@@ -96,7 +107,7 @@ const googleCallback = async (req, res, next) => {
         const rawFlow = cookies[FLOW_COOKIE];
 
         if (!code || !state || !rawFlow) {
-            return res.status(400).json({ success: false, message: "Invalid OAuth callback" });
+            return failFlow(res, 400, "Invalid OAuth callback");
         }
 
         // Verify + decode the flow cookie.
@@ -104,12 +115,12 @@ const googleCallback = async (req, res, next) => {
         try {
             flow = jwt.verify(rawFlow, env.JWT_SECRET);
         } catch {
-            return res.status(400).json({ success: false, message: "OAuth flow expired, please retry" });
+            return failFlow(res, 400, "OAuth flow expired, please retry");
         }
 
         // CSRF defence: state must match what we issued.
         if (state !== flow.state) {
-            return res.status(400).json({ success: false, message: "OAuth state mismatch" });
+            return failFlow(res, 400, "OAuth state mismatch");
         }
 
         // Exchange the authorization code for tokens (with the PKCE verifier).
@@ -128,7 +139,7 @@ const googleCallback = async (req, res, next) => {
 
         const idToken = tokenRes.data.id_token;
         if (!idToken) {
-            return res.status(401).json({ success: false, message: "No ID token returned by Google" });
+            return failFlow(res, 401, "No ID token returned by Google");
         }
 
         // Validate the ID token via Google's tokeninfo endpoint
@@ -137,13 +148,16 @@ const googleCallback = async (req, res, next) => {
         const claims = info.data;
 
         if (claims.aud !== env.GOOGLE_CLIENT_ID) {
-            return res.status(401).json({ success: false, message: "ID token audience mismatch" });
+            return failFlow(res, 401, "ID token audience mismatch");
+        }
+        if (!isGoogleIssuer(claims.iss)) {
+            return failFlow(res, 401, "ID token issuer mismatch");
         }
         if (claims.nonce !== flow.nonce) {
-            return res.status(401).json({ success: false, message: "ID token nonce mismatch" });
+            return failFlow(res, 401, "ID token nonce mismatch");
         }
         if (String(claims.email_verified) !== "true") {
-            return res.status(401).json({ success: false, message: "Google email is not verified" });
+            return failFlow(res, 401, "Google email is not verified");
         }
 
         const email = String(claims.email).toLowerCase();
@@ -179,10 +193,7 @@ const googleCallback = async (req, res, next) => {
         });
     } catch (error) {
         if (error.response) {
-            return res.status(401).json({
-                success: false,
-                message: "Google authentication failed",
-            });
+            return failFlow(res, 401, "Google authentication failed");
         }
         next(error);
     }

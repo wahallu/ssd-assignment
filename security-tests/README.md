@@ -1,9 +1,12 @@
 # Security test harness
 
 `exploits.sh` runs black-box attacks against the API Gateway and prints
-`VULNERABLE` or `SAFE` for each of 17 checks (V1–V10), covering the distinct
-vulnerabilities documented in the report. The same script is run against the
-original and the hardened code so the results are directly comparable.
+`VULNERABLE` or `SAFE` for each of 19 checks (V1–V10 plus OA1/OA2 for the
+Google OIDC surface), covering the distinct vulnerabilities documented in the
+report. The same script is run against the original and the hardened code so
+the results are directly comparable. OA1/OA2 have no equivalent on the
+original code (the OIDC feature didn't exist yet), so they only run — and
+should be SAFE — against the hardened code.
 
 ## Usage
 

@@ -1,5 +1,3 @@
-const { NODE_ENV } = require("../config/env");
-
 /**
  * Centralized error handler for the API Gateway.
  * Never leaks internal error details / stack traces to clients in production.

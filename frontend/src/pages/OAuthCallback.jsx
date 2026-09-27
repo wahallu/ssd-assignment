@@ -14,6 +14,11 @@ export default function OAuthCallback() {
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const oauthError = params.get("oauth_error");
+        if (oauthError) {
+            setError(oauthError);
+            return;
+        }
         const token = params.get("token");
         if (!token) {
             setError("Google sign-in failed. Please try again.");

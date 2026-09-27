@@ -6,7 +6,7 @@ const morgan = require("morgan");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const { authenticate } = require("./middleware/auth");
-const { globalLimiter, authLimiter } = require("./middleware/rateLimiter");
+const { globalLimiter, authLimiter, writeLimiter } = require("./middleware/rateLimiter");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -45,7 +45,10 @@ app.use(
             // Allow same-origin / server-to-server requests (no Origin header).
             if (!origin) return cb(null, true);
             if (CORS_ORIGINS.includes(origin)) return cb(null, true);
-            return cb(new Error("Origin not allowed by CORS"));
+            // Omit CORS headers for untrusted origins without turning an
+            // otherwise valid API request into a server error. Browsers will
+            // still block JavaScript from reading the response.
+            return cb(null, false);
         },
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -107,6 +110,14 @@ const injectTrust = (req, _res, next) => {
 // ─── Auth wiring ────────────────────────────────────────────────
 app.use("/api/users/login", authLimiter);
 app.use("/api/users/register", authLimiter);
+
+// Extra budget on top of globalLimiter for the sensitive write paths that
+// reserve seats and move money — blunts booking/payment spam and scalping
+// bots beyond what the generic per-IP limit covers.
+const limitWrites = (req, res, next) =>
+    req.method === "POST" ? writeLimiter(req, res, next) : next();
+app.use("/api/tickets", limitWrites);
+app.use("/api/payments", limitWrites);
 
 app.use("/api/users", conditionalAuth);
 app.use("/api/events", conditionalAuth);

@@ -30,4 +30,22 @@ const authLimiter = rateLimit({
     },
 });
 
-module.exports = { globalLimiter, authLimiter };
+/**
+ * Stricter limiter for ticket/payment creation — these are the sensitive
+ * write paths tied to seat reservation and money movement, so they get a
+ * tighter budget than ordinary browsing traffic to blunt booking/payment
+ * spam and scalping bots. Failed attempts still count, since the goal is
+ * to cap total write volume, not just successful bookings.
+ */
+const writeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message: "Too many booking/payment attempts, please try again later",
+    },
+});
+
+module.exports = { globalLimiter, authLimiter, writeLimiter };
