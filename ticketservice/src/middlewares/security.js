@@ -57,30 +57,7 @@ const requireAdmin = (req, res, next) => {
 };
 
 /** Recursively remove keys that could be interpreted as Mongo query operators. */
-const scrub = (value) => {
-    if (Array.isArray(value)) return value.map(scrub);
-    if (value && typeof value === "object") {
-        for (const key of Object.keys(value)) {
-            if (key.startsWith("$") || key.includes(".")) {
-                delete value[key];
-            } else {
-                value[key] = scrub(value[key]);
-            }
-        }
-    }
-    return value;
-};
-
-/**
- * Sanitise request input against NoSQL operator injection.
- * req.query is read-only in Express 5, so its values are validated per-controller;
- * here we scrub body and params in place.
- */
-const sanitize = (req, _res, next) => {
-    if (req.body) scrub(req.body);
-    if (req.params) scrub(req.params);
-    next();
-};
+const { scrub, sanitize } = require("../utils/sanitizer");
 
 /** Minimal, dependency-free security headers (helmet-equivalent subset). */
 const securityHeaders = (_req, res, next) => {

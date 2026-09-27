@@ -47,6 +47,8 @@ const confirmTicket = async (req, ticketId) => {
 const isOwnerOrAdmin = (req, payment) =>
     req.auth.role === "admin" || String(payment.userId) === req.auth.userId;
 
+const { validatePaymentInput, verifyPaymentEligibility } = require("../utils/paymentValidation");
+
 // --------------- Controllers ---------------
 
 // @desc    Process a payment for the authenticated user's own ticket
@@ -56,33 +58,26 @@ const createPayment = async (req, res, next) => {
         const { ticketId, paymentMethod } = req.body;
         const userId = req.auth.userId; // from verified token, not the body
 
-        if (!ticketId || !paymentMethod) {
+        const inputCheck = validatePaymentInput({ ticketId, paymentMethod });
+        if (!inputCheck.valid) {
             return res.status(400).json({
                 success: false,
-                message: "Missing required fields: ticketId, paymentMethod",
-            });
-        }
-        const validMethods = ["card", "cash", "online"];
-        if (!validMethods.includes(paymentMethod)) {
-            return res.status(400).json({
-                success: false,
-                message: `paymentMethod must be one of: ${validMethods.join(", ")}`,
+                message: inputCheck.message,
             });
         }
 
         const ticket = await fetchTicket(req, ticketId);
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: `Ticket not found with id ${ticketId}` });
-        }
-
-        // Authorisation: a user may only pay for their own ticket.
-        if (req.auth.role !== "admin" && String(ticket.userId) !== userId) {
-            return res.status(403).json({ success: false, message: "You can only pay for your own ticket" });
+        const eligibility = verifyPaymentEligibility(ticket, userId, req.auth.role);
+        if (!eligibility.eligible) {
+            return res.status(eligibility.statusCode).json({
+                success: false,
+                message: eligibility.message,
+            });
         }
 
         // Amount and status are authoritative on the server side — the client
         // cannot pay 0 or mark its own payment "completed".
-        const amount = Number(ticket.price);
+        const amount = eligibility.amount;
 
         const existing = await Payment.findOne({ ticketId, status: "completed" });
         if (existing) {

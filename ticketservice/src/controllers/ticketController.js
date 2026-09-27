@@ -68,6 +68,8 @@ const releaseSeats = async (req, eventId, seatCount) => {
 const isOwnerOrAdmin = (req, ticket) =>
     req.auth.role === "admin" || String(ticket.userId) === req.auth.userId;
 
+const { calculateTicketPrice, validateTicketInput } = require("../utils/pricing");
+
 // --------------- Controllers ---------------
 
 // @desc    Create a new ticket for the authenticated user
@@ -79,21 +81,19 @@ const createTicket = async (req, res, next) => {
         // Identity comes from the verified token, never the request body.
         const userId = req.auth.userId;
 
-        if (!eventId || !seatCount) {
+        const validation = validateTicketInput({ eventId, seatCount });
+        if (!validation.valid) {
             return res.status(400).json({
                 success: false,
-                message: "Missing required fields: eventId, seatCount",
+                message: validation.message,
             });
-        }
-        if (!Number.isInteger(seatCount) || seatCount < 1) {
-            return res.status(400).json({ success: false, message: "seatCount must be an integer >= 1" });
         }
 
         // Price is derived from the authoritative event price — the client
         // cannot dictate the price or the ticket status.
         const event = await fetchEvent(req, eventId);
         const reserved = await reserveSeats(req, eventId, seatCount); // atomic; enforces availability
-        const price = Number((reserved.price * seatCount).toFixed(2));
+        const price = calculateTicketPrice(reserved.price, seatCount);
 
         try {
             const ticket = await Ticket.create({

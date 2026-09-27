@@ -99,20 +99,28 @@ const deleteEvent = async (req, res, next) => {
     }
 };
 
+const {
+    validateSeatCount,
+    buildReserveFilter,
+    buildReserveUpdate,
+    buildReleaseUpdate,
+} = require("../utils/seatManager");
+
 // @desc    Atomically reserve seats (used by Ticket Service during booking).
 //          Prevents the read-then-write race that allowed overselling.
 // @route   PATCH /api/events/:id/reserve   body: { seatCount }
 const reserveSeats = async (req, res, next) => {
     try {
-        const seatCount = Number(req.body.seatCount);
-        if (!Number.isInteger(seatCount) || seatCount < 1) {
-            return res.status(400).json({ success: false, message: "seatCount must be a positive integer" });
+        const seatCheck = validateSeatCount(req.body.seatCount);
+        if (!seatCheck.valid) {
+            return res.status(400).json({ success: false, message: seatCheck.message });
         }
+        const seatCount = seatCheck.count;
 
         // Conditional atomic decrement: only succeeds if enough seats remain.
         const event = await Event.findOneAndUpdate(
-            { _id: req.params.id, availableSeats: { $gte: seatCount } },
-            { $inc: { availableSeats: -seatCount } },
+            buildReserveFilter(req.params.id, seatCount),
+            buildReserveUpdate(seatCount),
             { new: true }
         );
 
@@ -135,14 +143,15 @@ const reserveSeats = async (req, res, next) => {
 // @route   PATCH /api/events/:id/release   body: { seatCount }
 const releaseSeats = async (req, res, next) => {
     try {
-        const seatCount = Number(req.body.seatCount);
-        if (!Number.isInteger(seatCount) || seatCount < 1) {
-            return res.status(400).json({ success: false, message: "seatCount must be a positive integer" });
+        const seatCheck = validateSeatCount(req.body.seatCount);
+        if (!seatCheck.valid) {
+            return res.status(400).json({ success: false, message: seatCheck.message });
         }
+        const seatCount = seatCheck.count;
 
         const event = await Event.findByIdAndUpdate(
             req.params.id,
-            { $inc: { availableSeats: seatCount } },
+            buildReleaseUpdate(seatCount),
             { new: true }
         );
 
