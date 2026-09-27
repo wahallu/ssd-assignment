@@ -56,12 +56,13 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
-/** Recursively remove keys that could be interpreted as Mongo query operators. */
+const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 const scrub = (value) => {
     if (Array.isArray(value)) return value.map(scrub);
     if (value && typeof value === "object") {
         for (const key of Object.keys(value)) {
-            if (key.startsWith("$") || key.includes(".")) {
+            if (key.startsWith("$") || key.includes(".") || FORBIDDEN_KEYS.has(key)) {
                 delete value[key];
             } else {
                 value[key] = scrub(value[key]);
